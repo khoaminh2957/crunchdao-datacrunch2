@@ -1,0 +1,22 @@
+# === Secrets / credentials (NEVER commit) ===
+.env
+**/.crunchdao/
+fresh_setup.txt
+*.token
+
+# === Large data files (exceed GitHub limits, reproducible from CrunchDAO) ===
+*.parquet
+*.pkl
+**/data/
+**/resources/
+
+# === Python cache ===
+__pycache__/
+*.pyc
+*.pyo
+
+# === Logs / runtime artifacts ===
+*.log
+cron_log.txt
+monitor_*.log
+submission.log
