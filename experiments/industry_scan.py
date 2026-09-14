@@ -106,6 +106,6 @@ print(f"features almost fully integer-valued     : {mask_int.sum()}", flush=True
 mask_binary = (score["frac_0_or_1"] > 0.95)
 print(f"features almost binary 0/1               : {mask_binary.sum()}", flush=True)
 
-score.to_csv(r"C:\Users\Admin\earn5usd\crunchdao\industry_scores.csv")
+score.to_csv("industry_scores.csv")
 print("\nsaved industry_scores.csv", flush=True)
 print(f"done in {time.time()-t0:.1f}s", flush=True)

@@ -81,5 +81,5 @@ print("# features with cluster_size>=5  at thr0.8:",
 print("# features with top10_mean_abs_corr>=0.5:",
       (out["top10_mean_abs_corr"] >= 0.5).sum(), flush=True)
 
-out.to_csv(r"C:\Users\Admin\earn5usd\crunchdao\industry_cluster_scores.csv", index=False)
+out.to_csv("industry_cluster_scores.csv", index=False)
 print(f"\nsaved industry_cluster_scores.csv; done in {time.time()-t0:.1f}s", flush=True)

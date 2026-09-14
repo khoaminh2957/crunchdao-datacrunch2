@@ -1,68 +1,56 @@
-# CrunchDAO Submission Pipeline
+# DataCrunch #2: Cross-Sectional Stock Return Prediction
 
-**Target:** First $5 USDC payout in 4–6 weeks if model is competitive.
-**Stake:** None. Pure ML competition — no downside, only upside.
-**Payout:** Monthly USDC to your Ethereum/Polygon wallet (MetaMask or Phantom EVM).
+My entry for CrunchDAO's DataCrunch #2 tournament (May 2026).
 
----
+## Task
 
-## What CrunchDAO is
+- **Goal:** predict next-period returns for about 1,900 stocks in each time period ("moon").
+- **Inputs:** 1,150 anonymized features, quantile-binned per moon, over 790+ moons.
+- **Scoring:** submissions run on CrunchDAO's cloud and are scored by the Pearson correlation between predictions and realized returns on a held-out moon.
 
-CrunchDAO runs **data science competitions** funded by two main sources:
+## Approach
 
-1. **DataCrunch** — In-house quant tournament (cross-sectional equity returns, similar to Numerai). Weekly/monthly forecasting rounds.
-2. **ADIA Lab** — Sponsored by Abu Dhabi Investment Authority's research lab. Hosts academic-style competitions (causal discovery, market forecasting, structural break detection). Higher prize pools, longer cycles (8–16 weeks).
+- **Model:** XGBoost on the raw target (500 trees, depth 6, learning rate 0.03), plus seed ensembles and a heterogeneous XGBoost + LightGBM + Ridge ensemble.
+- **Research:** exploratory analysis of the feature structure (quantile binning, industry-like feature clusters), hyperparameter sweeps on GPU, and alternatives such as rank targets, 3-class classification, recency-weighted training, and MLPs.
 
-Both pay out in **USDC**. No staking, no NMR equivalent. You submit predictions, you get ranked, top participants share the pool.
+## Validation
 
-## How payout works
+My first local validator (Spearman on rank targets, 1-moon gap) was badly miscalibrated: a deep XGBoost scored 0.082 locally but only 0.018 live.
 
-- Each competition publishes a **prize pool** (typically $5k–$50k per round for ADIA, smaller continuous pool for DataCrunch).
-- Pool is distributed across **top 200–300 ranks** on the final leaderboard.
-- Payout is roughly geometric-decay: rank 1 takes ~5–10% of pool, rank 100 takes ~$5–$20, rank 300 takes the minimum threshold (often $1–$5).
-- Wallet payout happens **monthly** for active competitions, **end-of-competition** for ADIA Lab rounds.
+I rebuilt it to match the live scoring more closely:
+- Pearson correlation on the last test moon only
+- 10 walk-forward folds with a 4-moon embargo
+- raw target instead of ranks
 
-## Realistic first-payout expectation
+Before each submission I recorded the predicted live score, then compared it with the actual score (`notes/prediction_ledger.md`).
 
-- **Best case (top quant background, e.g. yours):** Rank ~150–250 on DataCrunch within 3–4 submission cycles → $5–$15 USDC after ~4 weeks.
-- **Median case:** Baseline LightGBM ensemble lands rank 400–600 → no payout. Need 2–3 iteration cycles to crack top 300.
-- **Worst case:** Submission has data leakage or wrong format → disqualified, 0 USDC.
+## Results
 
-**Hard truth:** $5 in 7 days is NOT realistic. CrunchDAO competitions evaluate on out-of-sample data that ships weekly/monthly. Even a perfect model on submission day won't crystallize a payout until the live evaluation window closes (typically 2–4 weeks per round).
+Live scores on CrunchDAO's cloud:
 
-## Why your background helps
+| Submission | Model | Predicted | Live |
+|---|---|---|---|
+| v52 | XGBoost, depth 8 (old validator) | 0.082 | 0.018 |
+| v60–v62, v66–v67 | XGBoost, single seeds | 0.065 | 0.023–0.081 (mean 0.060) |
+| v63 | XGBoost, 3-seed average | 0.065 | 0.062 |
+| v64 | XGBoost, 5-seed ensemble | 0.065 | 0.064 |
+| v65 | 9-model XGBoost ensemble | 0.065 | 0.061 |
+| v68 | XGBoost + LightGBM + Ridge | 0.067 | 0.076 |
 
-- **FinDPO / sentiment alpha work** → directly relevant to ADIA Lab "market forecasting" tracks.
-- **WQ Brain operator fluency** → translates to feature engineering on tabular financial data.
-- **LightGBM/CV discipline** → DataCrunch baseline is essentially a cleaner version of what you already do for cluster1/cluster2 alpha generation.
+**What I learned**
+- **Seed noise is large.** Single-seed scores ranged from 0.023 to 0.081. Seed ensembles reduced the spread to about ±0.002.
+- **The heterogeneous ensemble gave a real gain** over single XGBoost models.
+- **Several ideas did not help:** training only on recent moons, 3-class classification, per-moon rank features, and trees of depth 8 or more.
 
-The main gap is **leaderboard awareness** — these competitions reward marginal-edge feature engineering and ensemble diversity, not raw model size. Plan to spend 80% of cycles on feature selection, 20% on model tuning.
+**Outcome:** my best live score was 0.081. The top of the leaderboard at the time was 0.110, so this approach did not reach the top ranks.
 
-## Pipeline contents
+## Repository layout
 
-| File | Purpose |
-|------|---------|
-| `setup.md` | Step-by-step signup, CLI install, API key wiring |
-| `requirements.txt` | Python deps (crunch-cli + sklearn stack) |
-| `download_data.py` | Pulls active competition data via CLI |
-| `train_baseline.py` | LightGBM + Ridge ensemble with time-series CV |
-| `submit.py` | Local validation (`crunch test`) then push (`crunch push`) |
-| `cron_daily.ps1` | Daily refresh-and-resubmit if new data ships |
-| `leaderboard_track.py` | Logs your daily rank to CSV for trend analysis |
+```
+submissions/          code submitted to CrunchDAO (train/infer entry points per project)
+experiments/          EDA, GPU sweeps, validators, and ensemble experiments
+experiments/variants/ model variants tested before submission
+notes/                pre-registered prediction ledger with live results
+```
 
-## Recommended starting competition
-
-**ADIA Lab Market Forecasting** (when active) — overlaps most with your existing skillset and has larger prize pools ($20k+). Fallback: **DataCrunch** continuous tournament for faster feedback loops.
-
-## Wallet setup
-
-You need an **EVM-compatible wallet** to receive USDC:
-
-- **MetaMask** (recommended) — browser extension, supports Ethereum mainnet + Polygon. CrunchDAO pays on **Polygon** to avoid gas fees.
-- **Phantom** (EVM mode) — also works if you already use it for Solana.
-
-Add your wallet address in CrunchDAO dashboard → Settings → Payout. Without this, your earnings accumulate but cannot be withdrawn.
-
----
-
-**Bottom line:** This is the cleanest no-stake ML earnings track for someone with your background. But it is a *competition*, not a faucet. Budget 4–6 weeks and 3–5 submission iterations before expecting the first USDC to land.
+Competition data is not included. It is downloaded from CrunchDAO, and the experiment scripts expect `X.reduced.parquet` and `y.reduced.parquet` locally.

@@ -94,4 +94,4 @@ if __name__ == '__main__':
     feat_v14 = [c for c in X.columns if c not in ('id','moon')]
     print(f"\n=== V14 baseline (n_est=500) on 5-fold walk-forward (CPU) ===")
     df = walk_forward(X, y, feat_v14, xgb_train_fn(use_gpu=False), xgb_infer_fn())
-    df.to_csv("/c/Users/Admin/earn5usd/crunchdao/wfcv_v14_cpu.csv", index=False)
+    df.to_csv("wfcv_v14_cpu.csv", index=False)
